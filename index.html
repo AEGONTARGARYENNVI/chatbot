@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Chennai Civils Academy — AI Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#1a4b8c;--brand-dark:#0d3266;--brand-mid:#1a5ca8;
+  --brand-light:#e8f0fb;--brand-pale:#f4f7fd;
+  --gold:#c9962a;--gold-light:#fdf3dc;
+  --green:#1a7a5a;--green-light:#e6f5ee;
+  --red:#b83232;--red-light:#fceaea;
+  --gray-50:#f8f8f6;--gray-100:#f0eff8;--gray-200:#d4d3cc;
+  --gray-400:#888780;--gray-600:#5a5958;--gray-900:#1a1a18;
+  --text:#1a1a18;--text-muted:#5a5958;--text-hint:#888780;
+  --border:rgba(0,0,0,0.08);--border-mid:rgba(0,0,0,0.13);
+  --bg:#f5f7fc;--surface:#ffffff;
+  --radius:14px;--radius-sm:8px;
+  --shadow:0 2px 12px rgba(0,0,0,0.05),0 1px 3px rgba(0,0,0,0.03);
+  --shadow-lg:0 8px 32px rgba(0,0,0,0.09),0 2px 8px rgba(0,0,0,0.05);
+}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;color:var(--text);
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 700px 500px at 15% 15%,rgba(26,75,140,0.07) 0%,transparent 70%),
+    radial-gradient(ellipse 500px 400px at 85% 85%,rgba(201,150,42,0.05) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+.app{position:relative;z-index:1;width:100%;max-width:460px;display:flex;flex-direction:column;gap:10px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.stat{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;text-align:center;box-shadow:var(--shadow)}
+.stat-val{font-size:20px;font-weight:600;color:var(--text);line-height:1;margin-bottom:3px;font-family:'DM Mono',monospace}
+.stat-label{font-size:10px;color:var(--text-hint);text-transform:uppercase;letter-spacing:.05em}
+
+/* Controls */
+.controls{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tg{display:flex;background:var(--surface);border:0.5px solid var(--border);border-radius:30px;padding:3px;box-shadow:var(--shadow)}
+.tb{padding:5px 14px;border-radius:24px;border:none;background:transparent;color:var(--text-muted);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.tb.on-green{background:var(--brand);color:#fff}
+.tb.on-blue{background:var(--brand-dark);color:#fff}
+
+/* Chat window */
+.cw{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-lg);border:0.5px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
+
+/* Header */
+.hdr{background:linear-gradient(135deg,var(--brand) 0%,var(--brand-dark) 100%);padding:14px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden}
+.hdr::after{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.05);pointer-events:none}
+.hdr::before{content:'';position:absolute;left:40%;bottom:-20px;width:80px;height:80px;border-radius:50%;background:rgba(201,150,42,0.08);pointer-events:none}
+.av{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.25)}
+.hi{flex:1;min-width:0}
+.hn{color:#fff;font-size:14px;font-weight:600;margin-bottom:2px}
+.hs{color:rgba(255,255,255,0.7);font-size:11px;display:flex;align-items:center;gap:5px}
+.ldot{width:6px;height:6px;border-radius:50%;background:#4ade80;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
+.cdb{text-align:right;flex-shrink:0}
+.cdv{color:#fff;font-size:15px;font-weight:600;font-family:'DM Mono',monospace;line-height:1}
+.cdl{color:rgba(255,255,255,0.6);font-size:10px;margin-top:2px}
+.mbadge{display:inline-block;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;margin-left:6px;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.9);vertical-align:middle}
+
+/* Messages */
+.msgs{padding:14px;min-height:340px;max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth}
+.msgs::-webkit-scrollbar{width:4px}
+.msgs::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:2px}
+.msg{max-width:86%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.6;white-space:pre-wrap;animation:msgIn .2s ease-out}
+@keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.bm{background:var(--gray-50);color:var(--text);border-radius:4px 16px 16px 16px;align-self:flex-start;border:0.5px solid var(--border)}
+.um{background:var(--brand);color:#fff;border-radius:16px 4px 16px 16px;align-self:flex-end}
+.cw-row{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:100%;animation:msgIn .2s ease-out}
+.chip{background:var(--surface);border:0.5px solid var(--brand);color:var(--brand-dark);border-radius:20px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.chip:hover{background:var(--brand-light);transform:translateY(-1px)}
+.chip:disabled{opacity:.4;cursor:default;transform:none}
+.hot{background:var(--gold-light);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:12px;color:#5a3a00;line-height:1.55;align-self:stretch;animation:msgIn .2s ease-out}
+.hot-t{font-weight:600;font-size:12px;color:#3a2500;margin-bottom:2px;display:flex;align-items:center;gap:6px}
+.hdot{width:7px;height:7px;border-radius:50%;background:var(--gold);animation:pulse 1s ease-in-out infinite}
+.tw{align-self:flex-start;animation:msgIn .15s ease-out}
+.typ{display:flex;gap:4px;padding:10px 14px;background:var(--gray-50);border-radius:4px 16px 16px 16px;border:0.5px solid var(--border);align-items:center}
+.td{width:6px;height:6px;border-radius:50%;background:var(--gray-400);animation:bl 1.2s infinite}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.3;transform:scale(.9)}40%{opacity:1;transform:scale(1)}}
+
+/* Voice bar */
+.vbar{height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--red);font-weight:500;background:var(--surface);border-left:0.5px solid var(--border);border-right:0.5px solid var(--border)}
+
+/* Footer */
+.ftr{background:var(--gray-50);border-top:0.5px solid var(--border);padding:10px 12px;display:flex;align-items:center;gap:8px}
+.tinp{flex:1;padding:9px 14px;border-radius:24px;border:0.5px solid var(--border-mid);background:var(--surface);font-size:13px;color:var(--text);outline:none;font-family:'DM Sans',sans-serif;transition:border-color .15s}
+.tinp:focus{border-color:var(--brand)}
+.tinp::placeholder{color:var(--text-hint)}
+.ibtn{width:36px;height:36px;border-radius:50%;border:0.5px solid var(--border-mid);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-muted);transition:all .15s;flex-shrink:0}
+.ibtn:hover{background:var(--gray-100);color:var(--text)}
+.ibtn.rec{background:var(--red-light);border-color:var(--red);color:var(--red)}
+.ibtn.muted{background:var(--red-light);border-color:var(--red);color:var(--red)}
+.sbtn{width:36px;height:36px;border-radius:50%;border:none;background:var(--brand);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:all .15s;flex-shrink:0}
+.sbtn:hover{background:var(--brand-dark);transform:scale(1.05)}
+.sbtn:active{transform:scale(.97)}
+.rbtn{width:100%;padding:9px;border:0.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text-muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;box-shadow:var(--shadow)}
+.rbtn:hover{background:var(--gray-100);color:var(--text)}
+
+/* NLP keyword map — for smarter text matching */
+/* handled in JS */
+
+@media(max-width:480px){body{padding:8px;align-items:flex-start;padding-top:12px}.msgs{max-height:360px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="stats">
+  <div class="stat"><div class="stat-val" id="si">0</div><div class="stat-label">Inquiries</div></div>
+  <div class="stat"><div class="stat-val" id="sh">0</div><div class="stat-label">Hot leads</div></div>
+  <div class="stat"><div class="stat-val" id="sc">0%</div><div class="stat-label">Conversion</div></div>
+</div>
+
+<div class="controls">
+  <div class="tg">
+    <button class="tb on-green" id="be" onclick="setLang('en')">English</button>
+    <button class="tb" id="bt" onclick="setLang('ta')">தமிழ்</button>
+  </div>
+  <div class="tg">
+    <button class="tb on-green" id="bst" onclick="setMode('student')">Aspirant</button>
+    <button class="tb" id="bpa" onclick="setMode('parent')">Parent</button>
+  </div>
+</div>
+
+<div class="cw">
+  <div class="hdr">
+    <div class="av">C</div>
+    <div class="hi">
+      <div class="hn">Chennai Civils Academy <span class="mbadge" id="mb">Aspirant</span></div>
+      <div class="hs"><span class="ldot"></span><span id="stxt">Online · replies instantly</span></div>
+    </div>
+    <div class="cdb">
+      <div class="cdv" id="cdv">--</div>
+      <div class="cdl" id="cdl">UPSC Prelims</div>
+    </div>
+  </div>
+  <div class="msgs" id="chat"></div>
+  <div class="vbar" id="vbar"></div>
+  <div class="ftr">
+    <input class="tinp" id="inp" placeholder="Type your question..." onkeydown="if(event.key==='Enter')sendText()">
+    <button class="ibtn" id="micb" title="Voice input" onclick="toggleVoice()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+    </button>
+    <button class="ibtn" id="spkb" title="Toggle voice output" onclick="toggleSpeak()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+    </button>
+    <button class="sbtn" onclick="sendText()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<button class="rbtn" onclick="doRestart()">↺ &nbsp;Reset / Start over</button>
+</div>
+
+<script>
+// ── STATE ────────────────────────────────────────────────────────────────────
+var lang='en', mode='student';
+var speakOn=false; // OFF by default — avoids autoplay block on load
+var recOn=false, recognition=null;
+var synth=window.speechSynthesis;
+var intentScore=0, totalInq=0, hotLeads=0, convs=0, hotFired=false;
+var chatEl=document.getElementById('chat');
+var voiceUnlocked=false; // tracks if user has interacted (unlocks speak)
+
+// ── COUNTDOWN ────────────────────────────────────────────────────────────────
+function updateCD(){
+  var upsc=new Date('2025-05-25T00:00:00');
+  var now=new Date();
+  var diff=Math.ceil((upsc-now)/86400000);
+  document.getElementById('cdv').textContent=diff>0?diff+'d':'Done';
+  document.getElementById('cdl').textContent=diff>0?'to UPSC Prelims':'UPSC Prelims 2025';
+}
+updateCD();
+
+// ── NLP KEYWORD MAP ──────────────────────────────────────────────────────────
+// Maps user freetext keywords → flow keys for smarter matching
+var NLP={
+  en:{
+    student:{
+      'fee|cost|price|money|charge|how much|rupee|₹':'Fee & EMI',
+      'emi|instalment|installment|monthly|pay':'Fee & EMI',
+      'scholarship|discount|waiver|free|financial':'Scholarship',
+      'demo|trial|free class|visit|attend|sample':'Book demo',
+      'upsc|civil|ias|ips|ifs|exam|prelims|mains':'UPSC Details',
+      'batch|timing|time|schedule|morning|evening|weekend':'Batch timings',
+      'faculty|teacher|trainer|coach|professor':'Our faculty',
+      'result|success|pass|rank|topper|rate':'Success rate',
+      'material|book|notes|study material|resource':'Study material',
+      'online|offline|hybrid|remote|virtual':'Online vs offline',
+      'why|better|best|compare|difference|unique':'Why choose us',
+      'contact|phone|call|whatsapp|reach|address|location':'Contact us',
+      'hello|hi|hey|start|help|namaste|vanakkam':'__start__',
+      'tip|prepare|strategy|plan|how to study':'Study strategy',
+      'date|when|schedule|exam date|notification':'Exam dates',
+      'optional|gs|general studies|essay|interview':'Course structure',
+      'hostel|accommodation|stay|room':'Hostel info',
+      'test|mock|practice|weekly test':'Mock tests'
+    },
+    parent:{
+      'fee|cost|price|money|charge|rupee|₹':'Fee & payment',
+      'emi|instalment|monthly|pay':'Fee & payment',
+      'scholarship|discount|waiver':'Scholarship details',
+      'admission|join|enroll|register':'Admission process',
+      'progress|result|marks|performance|update':'Child progress',
+      'batch|timing|time|schedule':'Batch timings',
+      'safety|secure|cctv|environment|campus':'Safety',
+      'counselling|counsel|guidance|meet|discuss':'Parent counselling',
+      'contact|phone|call|whatsapp|reach':'Contact team',
+      'hello|hi|hey|start|help':'__start__',
+      'hostel|accommodation|stay':'Hostel info',
+      'book|demo|trial|visit':'Book demo child'
+    }
+  },
+  ta:{
+    student:{
+      'கட்டணம்|கட்டம்|கட்ட|விலை|செலுத்த|fee|cost':'கட்டணம் & EMI',
+      'emi|தவணை|மாதாமாதம்|pay':'கட்டணம் & EMI',
+      'scholarship|தள்ளுபடி|இலவச|உதவி':'Scholarship',
+      'demo|டெமோ|கிளாஸ்|வர|பார்க்க':'டெமோ கிளாஸ்',
+      'upsc|civil|ias|ips|தேர்வு|prelims|mains':'UPSC விவரம்',
+      'batch|நேரம்|time|schedule|காலை|மாலை':'Batch நேரங்கள்',
+      'faculty|ஆசிரியர்|teacher|trainer':'எங்கள் faculty',
+      'result|வெற்றி|pass|rank|topper':'வெற்றி விகிதம்',
+      'material|book|notes|படிப்பு|resource':'Study material',
+      'online|offline|virtual|remote':'Online vs offline',
+      'ஏன்|better|best|compare|unique|சிறந்த':'ஏன் சிவில்ஸ் academy?',
+      'contact|phone|call|whatsapp|address':'தொடர்பு',
+      'hello|hi|hey|வணக்கம்|help|start|namaste':'__start__',
+      'tip|prepare|strategy|எப்படி படிக்க':'Study strategy',
+      'date|when|தேதி|schedule':'தேர்வு தேதிகள்',
+      'hostel|தங்குமிடம்|stay|room':'Hostel விவரம்',
+      'mock|test|practice|weekly':'Mock tests'
+    },
+    parent:{
+      'கட்டணம்|கட்டம்|fee|cost|rupee':'கட்டணம் & payment',
+      'emi|தவணை|மாதாமாதம்':'கட்டணம் & payment',
+      'scholarship|தள்ளுபடி|discount':'Scholarship விவரம்',
+      'admission|join|சேர்க்கை|register':'Admission process',
+      'progress|result|marks|performance':'பிள்ளையின் progress',
+      'batch|நேரம்|time|schedule':'Batch நேரங்கள்',
+      'safety|secure|cctv|பாதுகாப்பு':'Safety',
+      'counselling|counsel|guidance':'Parent counselling',
+      'contact|phone|call|whatsapp':'Team-கிட்ட பேசு',
+      'hello|hi|hey|வணக்கம்|help|start':'__start__',
+      'hostel|தங்குமிடம்|stay':'Hostel விவரம்',
+      'demo|book|trial|visit':'Demo book'
+    }
+  }
+};
+
+// ── FLOWS ────────────────────────────────────────────────────────────────────
+var F={
+en:{
+student:{
+  start:{msg:"Hi! I'm the Chennai Civils Academy AI assistant — available 24/7.\n\nI can help with UPSC preparation, courses, fees, batch timings, and more.\n\nWhat would you like to know?",chips:["UPSC Details","Fee & EMI","Book demo","Batch timings","Why choose us","Exam dates","Study strategy","Contact us"]},
+  "UPSC Details":{msg:"UPSC Civil Services Coaching:\n\n• Prelims + Mains + Interview\n• GS Paper 1 to 4 fully covered\n• Optional subjects available\n• Current affairs — daily sessions\n• Answer writing practice — 5 days/week\n• Essay writing workshops\n• Max 25 students per batch\n• Personal mentoring by IAS officers\n\nWant to know about fees or book a demo?",chips:["Fee & EMI","Book demo","Our faculty","Course structure"],intent:2},
+  "Course structure":{msg:"Course Structure:\n\n• Foundation batch — 12 months (full syllabus)\n• Prelims crash course — 3 months\n• Mains intensive — 4 months\n• Interview guidance — 6 weeks\n• Weekend batch for working professionals\n\nAll batches include:\n✓ Daily current affairs\n✓ Weekly mock tests\n✓ 1:1 mentor sessions\n✓ Study material",chips:["Fee & EMI","Book demo","Batch timings"],intent:1},
+  "Fee & EMI":{msg:"Fee Structure:\n\n• Foundation (12 months): ₹85,000\n• Prelims crash course: ₹25,000\n• Mains intensive: ₹35,000\n• Interview guidance: ₹20,000\n• Full package (all stages): ₹1,40,000\n\nEMI Options:\n• 3-month EMI — zero interest\n• 6-month EMI — zero interest\n• 12-month EMI — 2% processing fee\n\nEarly bird discount: 10% off before Feb 28.",chips:["Scholarship","Book demo","Contact us"],intent:2},
+  "Scholarship":{msg:"Scholarship & Concession:\n\n• Graduates with 80%+: 15% waiver\n• SC/ST candidates: 25% waiver\n• Ex-servicemen & families: 20% off\n• Repeat attempt candidates: 10% off\n• Women aspirants: 5% additional off\n\nAll concessions verified at enrollment. Can be combined up to 30% max.",chips:["Book demo","Fee & EMI","Contact us"],intent:2},
+  "Book demo":{msg:"Free Demo Class:\n\n• Every Tuesday & Friday\n• Timings: 9 AM or 5 PM\n• In-person (T. Nagar, Chennai) or Google Meet\n• Sit in a live GS class — no obligation\n• Meet faculty and current students\n\nShare your name and preferred slot — I'll confirm your seat within 2 hours.\n\nOr call directly: 044-4567 8900",chips:["Contact us","Our faculty","Fee & EMI"],intent:3},
+  "Batch timings":{msg:"Batch Schedule:\n\n• Morning batch: 6:30 AM – 10:30 AM\n• Afternoon batch: 12 PM – 4 PM\n• Evening batch: 5:30 PM – 9:30 PM\n• Weekend batch: Sat & Sun, 8 AM – 2 PM\n\nOnline batches available on all slots via Google Meet.\n\nNew batch starting: Feb 3, 2025.",chips:["Book demo","Fee & EMI"],intent:1},
+  "Our faculty":{msg:"Our Faculty:\n\n• 3 IAS officers — active mentors\n• 2 IPS officers — guest faculty\n• Faculty with 10+ years UPSC coaching experience\n• Dedicated faculty per GS paper\n• Current affairs covered by former journalist\n\nAll faculty are accessible — personal WhatsApp for doubts.",chips:["Book demo","Why choose us"],intent:1},
+  "Success rate":{msg:"Our Results:\n\n• 2024 batch: 14 selections to IAS/IPS/IFS\n• Overall selection rate: 38% (industry avg: 8%)\n• 6 students in top 100 rank — 2023\n• 100% students qualify Prelims after 2nd attempt\n\nTestimonials available on request.",chips:["Book demo","Why choose us","Our faculty"],intent:1},
+  "Study material":{msg:"Study Material Provided:\n\n• Comprehensive notes for all GS papers\n• Optional subject material\n• Monthly current affairs magazine\n• Previous 15 years question papers with analysis\n• Answer writing templates\n\nAll material included in course fee. No extra cost.",chips:["Fee & EMI","Book demo"],intent:1},
+  "Online vs offline":{msg:"Online vs Offline:\n\nOffline (T. Nagar centre):\n✓ Direct faculty interaction\n✓ Group study environment\n✓ Library access\n✓ Answer checking in person\n\nOnline (Google Meet):\n✓ Same faculty, same content\n✓ Recorded sessions for revision\n✓ Available pan-India\n✓ Suitable for working professionals",chips:["Book demo","Batch timings"],intent:1},
+  "Why choose us":{msg:"Why Chennai Civils Academy:\n\n• 38% selection rate vs 8% industry average\n• IAS officers as personal mentors — not just guest lecturers\n• Smallest batches in Chennai — max 25 students\n• No pre-recorded content — all live, all interactive\n• Tamil Nadu specific current affairs coverage\n• Free re-admission if you don't qualify in first attempt\n\nOther institutes: large batches, pre-recorded content, no personal mentoring.",chips:["Book demo","Our faculty","Success rate"],intent:2},
+  "Exam dates":{msg:"Key UPSC Dates 2025:\n\n• Notification: Feb 12, 2025\n• Prelims: May 25, 2025\n• Mains: Sep 2025 (tentative)\n• Interview: Jan–Mar 2026\n\nState PSC Dates:\n• TNPSC Group 1: Jun 2025 (tentative)\n• TNPSC Group 2: Aug 2025 (tentative)\n\nStart now — Prelims is in 4 months.",chips:["UPSC Details","Book demo","Study strategy"],intent:1},
+  "Study strategy":{msg:"UPSC Preparation Strategy:\n\n• Month 1–3: Build foundation — NCERT + basics\n• Month 4–6: Standard books + answer writing start\n• Month 7–9: Current affairs integration + mock tests\n• Month 10–12: Full revision + Prelims mock series\n\nFor Prelims specifically:\n• 2 months dedicated mock test series\n• Daily 100-question practice papers\n• Weekly performance review with mentor",chips:["UPSC Details","Book demo","Exam dates"],intent:1},
+  "Mock tests":{msg:"Mock Test Program:\n\n• Weekly Prelims mock — every Sunday\n• Monthly Mains mock — full answer writing\n• Topic-wise tests — after each chapter\n• All India ranking provided\n• Detailed performance analysis\n• Mentor feedback on answers\n\nTests are included in course fee.",chips:["Book demo","Fee & EMI"],intent:1},
+  "Hostel info":{msg:"Accommodation:\n\nWe have tie-ups with 3 PGs near our T. Nagar centre:\n\n• Mixed PG: ₹8,000–12,000/month\n• Girls hostel: ₹9,000–13,000/month\n• Single rooms available at ₹15,000/month\n\nAll within 500m of the centre. Meals available.",chips:["Book demo","Contact us"],intent:1},
+  "Contact us":{msg:"Chennai Civils Academy:\n\nPhone/WhatsApp: 044-4567 8900\nEmail: info@chennaicivils.in\nAddress: 45 GN Chetty Road, T. Nagar, Chennai 600017\n\nHours: Mon–Sat, 8 AM – 8 PM\n\nShall we call you back within 2 hours?",chips:["Yes, call me back","Book demo"],intent:1},
+  "Yes, call me back":{msg:"Done. Share your name and number here and our counsellor will call you within 2 working hours.\n\nThank you for considering Chennai Civils Academy.",chips:["Start over"],intent:1,conversion:true},
+  "Start over":null
+},
+parent:{
+  start:{msg:"Hello! Welcome to Chennai Civils Academy.\n\nI'm here to help parents with admissions, fees, progress updates, and more.\n\nHow can I help today?",chips:["Admission process","Fee & payment","Child progress","Batch timings","Parent counselling","Safety","Contact team"]},
+  "Admission process":{msg:"Admission Process:\n\n1. Attend a free demo class\n2. Meet our academic counsellor\n3. Choose course and batch\n4. Submit enrollment form\n5. Pay first instalment\n\nYour child can start within 48 hours of enrollment.\n\nWe assess each aspirant individually — no blanket admissions.",chips:["Book demo child","Fee & payment","Parent counselling"],intent:2},
+  "Fee & payment":{msg:"Fee Structure:\n\n• Foundation (12 months): ₹85,000\n• Prelims crash course: ₹25,000\n• Full package: ₹1,40,000\n\nPayment Options:\n• Full payment: 5% discount\n• 3-month EMI: zero interest\n• 6-month EMI: zero interest\n\nScholarships available. Sibling discount: 10%.",chips:["Scholarship details","Book demo child","Contact team"],intent:2},
+  "Scholarship details":{msg:"Scholarships Available:\n\n• 80%+ graduation marks: 15% waiver\n• SC/ST: 25% waiver\n• Women aspirants: extra 5% off\n• Ex-servicemen families: 20% off\n• Financial hardship: assessed case by case\n\nCounsellor evaluates at enrollment — no paperwork required in advance.",chips:["Book demo child","Contact team"],intent:2},
+  "Child progress":{msg:"Parent Communication at Chennai Civils:\n\n• Monthly progress report — email\n• Test scores shared after every mock\n• Attendance SMS to registered parent number\n• Direct WhatsApp access to batch mentor\n• Quarterly parent-mentor meeting\n\nIf your child is struggling, you hear from us first — not last.",chips:["Book demo child","Contact team"]},
+  "Batch timings":{msg:"Available Batches:\n\n• Morning: 6:30 AM – 10:30 AM\n• Afternoon: 12 PM – 4 PM\n• Evening: 5:30 PM – 9:30 PM\n• Weekend: Sat & Sun, 8 AM – 2 PM\n\nOnline available on all slots. New batch: Feb 3, 2025.",chips:["Book demo child","Fee & payment"]},
+  "Parent counselling":{msg:"Parent Counselling Session:\n\n• Is UPSC the right path for your child?\n• Realistic timeline and success probability\n• How we support struggling aspirants\n• Financial planning for the journey\n• Your questions — no time limit\n\nFree. In-person or video call. 45 minutes.",chips:["Book counselling","Contact team"],intent:2},
+  "Book counselling":{msg:"Counselling slots: Mon–Sat, 10 AM – 6 PM\n\nCall/WhatsApp: 044-4567 8900\n\nOr share your name and number — we'll call to schedule within 24 hours.",chips:["Contact team","Start over"],intent:1,conversion:true},
+  "Safety":{msg:"Campus Safety:\n\n• CCTV across all premises\n• Biometric attendance — SMS to parents\n• Female security staff\n• No outsider entry without ID\n• Emergency contact system\n• Anti-ragging committee active\n\nOur T. Nagar campus is in a safe, well-connected location.",chips:["Book demo child","Parent counselling"]},
+  "Book demo child":{msg:"Free Demo Class:\n\n• Every Tuesday & Friday\n• 9 AM or 5 PM\n• In-person or Google Meet\n\nShare your child's name, graduation background, and target exam — we'll place them in the right demo batch.\n\nCall/WhatsApp: 044-4567 8900",chips:["Contact team","Fee & payment"],intent:3},
+  "Contact team":{msg:"Chennai Civils Academy:\n\nPhone/WhatsApp: 044-4567 8900\nEmail: info@chennaicivils.in\nAddress: 45 GN Chetty Road, T. Nagar, Chennai\n\nMon–Sat: 8 AM – 8 PM\n\nShall we call you back?",chips:["Yes, call us","Start over"],intent:1},
+  "Yes, call us":{msg:"We'll call within 2 working hours.\n\nPlease share your name and contact number here.\n\nThank you for trusting Chennai Civils Academy.",chips:["Start over"],intent:1,conversion:true},
+  "Hostel info":{msg:"Accommodation near our T. Nagar centre:\n\n• Mixed PG: ₹8,000–12,000/month\n• Girls hostel: ₹9,000–13,000/month\n• Single rooms: ₹15,000/month\n\nAll within 500m. Meals available. We can share contacts.",chips:["Book demo child","Contact team"]},
+  "Start over":null
+}
+},
+ta:{
+student:{
+  start:{msg:"வணக்கம்! சென்னை சிவில்ஸ் அகாடமி AI assistant — 24/7 உதவிக்கு தயார்.\n\nUPSC தயாரிப்பு, கோர்ஸ்கள், கட்டணம், batch நேரங்கள் — எதுவும் கேளுங்க.",chips:["UPSC விவரம்","கட்டணம் & EMI","டெமோ கிளாஸ்","Batch நேரங்கள்","ஏன் சிவில்ஸ் academy?","தேர்வு தேதிகள்","Study strategy","தொடர்பு"]},
+  "UPSC விவரம்":{msg:"UPSC Civil Services கோச்சிங்:\n\n• Prelims + Mains + Interview\n• GS Paper 1 to 4 முழு coverage\n• Optional subjects available\n• Daily current affairs sessions\n• வாரம் 5 நாள் answer writing practice\n• Essay writing workshops\n• Max 25 மாணவர்கள் per batch\n• IAS officers personal mentoring\n\nFee பத்தி தெரிய வேணுமா?",chips:["கட்டணம் & EMI","டெமோ கிளாஸ்","எங்கள் faculty","Course structure"],intent:2},
+  "Course structure":{msg:"Course Structure:\n\n• Foundation batch — 12 மாதங்கள் (full syllabus)\n• Prelims crash course — 3 மாதங்கள்\n• Mains intensive — 4 மாதங்கள்\n• Interview guidance — 6 weeks\n• Weekend batch — working professionals-க்கு\n\nஅனைத்திலும்:\n✓ Daily current affairs\n✓ Weekly mock tests\n✓ 1:1 mentor sessions\n✓ Study material",chips:["கட்டணம் & EMI","டெமோ கிளாஸ்","Batch நேரங்கள்"],intent:1},
+  "கட்டணம் & EMI":{msg:"கட்டண விவரம்:\n\n• Foundation (12 மாதம்): ₹85,000\n• Prelims crash course: ₹25,000\n• Mains intensive: ₹35,000\n• Interview guidance: ₹20,000\n• Full package: ₹1,40,000\n\nEMI வசதி:\n• 3 மாத EMI — வட்டி இல்லை\n• 6 மாத EMI — வட்டி இல்லை\n• 12 மாத EMI — 2% processing fee\n\nEarly bird: Feb 28 வரை 10% discount.",chips:["Scholarship","டெமோ கிளாஸ்","தொடர்பு"],intent:2},
+  "Scholarship":{msg:"Scholarship & Concession:\n\n• 80%+ graduates: 15% waiver\n• SC/ST candidates: 25% waiver\n• Ex-servicemen families: 20% off\n• Repeat attempt: 10% off\n• Women aspirants: 5% additional\n\nMax 30% வரை combine பண்ணலாம்.",chips:["டெமோ கிளாஸ்","கட்டணம் & EMI","தொடர்பு"],intent:2},
+  "டெமோ கிளாஸ்":{msg:"Free Demo Class:\n\n• ஒவ்வொரு செவ்வாய் & வெள்ளி\n• காலை 9 மணி அல்லது மாலை 5 மணி\n• நேரில் (T. Nagar, Chennai) அல்லது Google Meet\n• Live GS class-ல் sit பண்ணலாம்\n• No obligation — முற்றிலும் இலவசம்\n\nபெயர் + விரும்பிய slot சொல்லுங்க — 2 மணி நேரத்தில் confirm.\n\nCall: 044-4567 8900",chips:["தொடர்பு","எங்கள் faculty","கட்டணம் & EMI"],intent:3},
+  "Batch நேரங்கள்":{msg:"Batch Schedule:\n\n• காலை batch: 6:30 AM – 10:30 AM\n• மதியம் batch: 12 PM – 4 PM\n• மாலை batch: 5:30 PM – 9:30 PM\n• Weekend batch: சனி & ஞாயிறு 8 AM – 2 PM\n\nOnline — எல்லா slot-லும் கிடைக்கும்.\n\nNew batch: Feb 3, 2025.",chips:["டெமோ கிளாஸ்","கட்டணம் & EMI"],intent:1},
+  "எங்கள் faculty":{msg:"எங்கள் Faculty:\n\n• 3 IAS officers — personal mentors\n• 2 IPS officers — guest faculty\n• 10+ வருட UPSC coaching experience\n• ஒவ்வொரு GS paper-க்கும் dedicated faculty\n• Current affairs — former journalist\n\nஅனைத்து faculty-யும் accessible — personal WhatsApp for doubts.",chips:["டெமோ கிளாஸ்","ஏன் சிவில்ஸ் academy?"],intent:1},
+  "வெற்றி விகிதம்":{msg:"எங்கள் Results:\n\n• 2024 batch: 14 selections (IAS/IPS/IFS)\n• Overall selection rate: 38% (industry avg: 8%)\n• 2023-ல் top 100-ல் 6 students\n• 2nd attempt-ல் 100% Prelims qualify\n\nTestimonials request-ல் கிடைக்கும்.",chips:["டெமோ கிளாஸ்","ஏன் சிவில்ஸ் academy?","எங்கள் faculty"],intent:1},
+  "Study material":{msg:"Study Material:\n\n• அனைத்து GS papers-க்கும் comprehensive notes\n• Optional subject material\n• Monthly current affairs magazine\n• 15 வருட previous papers + analysis\n• Answer writing templates\n\nCourse fee-ல் included. Extra cost இல்லை.",chips:["கட்டணம் & EMI","டெமோ கிளாஸ்"],intent:1},
+  "Online vs offline":{msg:"Online vs Offline:\n\nOffline (T. Nagar centre):\n✓ Direct faculty interaction\n✓ Group study\n✓ Library access\n✓ In-person answer checking\n\nOnline (Google Meet):\n✓ Same faculty, same content\n✓ Recorded sessions\n✓ Pan-India available\n✓ Working professionals-க்கு suitable",chips:["டெமோ கிளாஸ்","Batch நேரங்கள்"],intent:1},
+  "ஏன் சிவில்ஸ் academy?":{msg:"ஏன் Chennai Civils Academy:\n\n• 38% selection rate (industry avg 8%)\n• IAS officers as personal mentors\n• Chennai-ல் smallest batches — max 25\n• Pre-recorded content இல்லை — all live\n• TN-specific current affairs\n• First attempt fail ஆனால் free re-admission\n\nMost institutes: large batches, pre-recorded, no personal mentoring.",chips:["டெமோ கிளாஸ்","எங்கள் faculty","வெற்றி விகிதம்"],intent:2},
+  "தேர்வு தேதிகள்":{msg:"முக்கிய தேர்வு தேதிகள் 2025:\n\n• UPSC Notification: Feb 12, 2025\n• UPSC Prelims: May 25, 2025\n• UPSC Mains: Sep 2025 (tentative)\n• Interview: Jan–Mar 2026\n\nState PSC:\n• TNPSC Group 1: Jun 2025\n• TNPSC Group 2: Aug 2025\n\nPreplims-க்கு 4 மாதங்கள் மட்டுமே உள்ளன.",chips:["UPSC விவரம்","டெமோ கிளாஸ்","Study strategy"],intent:1},
+  "Study strategy":{msg:"UPSC Preparation Strategy:\n\n• Month 1–3: Foundation — NCERT + basics\n• Month 4–6: Standard books + answer writing\n• Month 7–9: Current affairs + mock tests\n• Month 10–12: Revision + Prelims mock series\n\nPrelims-க்கு:\n• 2 மாதம் dedicated mock test series\n• Daily 100 questions practice\n• Weekly mentor review",chips:["UPSC விவரம்","டெமோ கிளாஸ்","தேர்வு தேதிகள்"],intent:1},
+  "Mock tests":{msg:"Mock Test Program:\n\n• Weekly Prelims mock — ஒவ்வொரு ஞாயிறு\n• Monthly Mains mock — full answer writing\n• Topic-wise tests — chapter-க்கு பின்\n• All India ranking\n• Detailed performance analysis\n• Mentor feedback on answers\n\nCourse fee-ல் included.",chips:["டெமோ கிளாஸ்","கட்டணம் & EMI"],intent:1},
+  "Hostel விவரம்":{msg:"T. Nagar centre அருகே accommodation:\n\n• Mixed PG: ₹8,000–12,000/மாதம்\n• Girls hostel: ₹9,000–13,000/மாதம்\n• Single rooms: ₹15,000/மாதம்\n\n500m-க்குள். Meals available.",chips:["டெமோ கிளாஸ்","தொடர்பு"],intent:1},
+  "தொடர்பு":{msg:"Chennai Civils Academy:\n\nPhone/WhatsApp: 044-4567 8900\nEmail: info@chennaicivils.in\nமுகவரி: 45 GN Chetty Road, T. Nagar, Chennai 600017\n\nதிங்கள்–சனி: காலை 8 – இரவு 8\n\n2 மணி நேரத்தில் callback வேணுமா?",chips:["ஆமா, callback","டெமோ கிளாஸ்"],intent:1},
+  "ஆமா, callback":{msg:"பெயர் மற்றும் number சொல்லுங்க — 2 working hours-ல் call வருகிறது.\n\nChennai Civils Academy-யை தேர்ந்தெடுத்தமைக்கு நன்றி.",chips:["Start over"],intent:1,conversion:true},
+  "Start over":null
+},
+parent:{
+  start:{msg:"வணக்கம்! Chennai Civils Academy-க்கு வரவேற்கிறோம்.\n\nஉங்கள் பிள்ளையின் UPSC பயணத்திற்கு எப்படி உதவலாம்?",chips:["Admission process","கட்டணம் & payment","பிள்ளையின் progress","Batch நேரங்கள்","Parent counselling","Safety","Team-கிட்ட பேசு"]},
+  "Admission process":{msg:"Admission Steps:\n\n1. Free demo class attend பண்ணுங்க\n2. Counsellor-கிட்ட பேசுங்க\n3. Course & batch தேர்ந்தெடுங்க\n4. Enrollment form fill பண்ணுங்க\n5. First instalment செலுத்துங்க\n\n48 மணி நேரத்தில் class start ஆகும்.",chips:["Demo book","கட்டணம் & payment","Parent counselling"],intent:2},
+  "கட்டணம் & payment":{msg:"கட்டண விவரம்:\n\n• Foundation (12 மாதம்): ₹85,000\n• Prelims crash course: ₹25,000\n• Full package: ₹1,40,000\n\nEMI: 3 அல்லது 6 மாதம் — வட்டி இல்லை.\nFull payment: 5% discount.\nSibling discount: 10% off.",chips:["Scholarship விவரம்","Demo book","Team-கிட்ட பேசு"],intent:2},
+  "Scholarship விவரம்":{msg:"Scholarships:\n\n• 80%+ graduation: 15% waiver\n• SC/ST: 25% waiver\n• Women aspirants: 5% additional\n• Ex-servicemen: 20% off\n• Financial hardship: case by case\n\nEnrollment-ல் counsellor assess பண்றார்.",chips:["Demo book","Team-கிட்ட பேசு"],intent:2},
+  "பிள்ளையின் progress":{msg:"Parent Updates:\n\n• Monthly progress report — email\n• Mock test scores — immediately after\n• Attendance SMS உங்கள் number-க்கு\n• Batch mentor — direct WhatsApp access\n• Quarterly parent-mentor meeting\n\nUங்கள் பிள்ளை struggle பண்ணினால் — நாங்கள் முதலில் சொல்கிறோம்.",chips:["Demo book","Team-கிட்ட பேசு"]},
+  "Batch நேரங்கள்":{msg:"Batch Schedule:\n\n• காலை: 6:30 AM – 10:30 AM\n• மதியம்: 12 PM – 4 PM\n• மாலை: 5:30 PM – 9:30 PM\n• Weekend: சனி & ஞாயிறு 8 AM – 2 PM\n\nOnline எல்லா நேரத்திலும். New batch: Feb 3.",chips:["Demo book","கட்டணம் & payment"]},
+  "Parent counselling":{msg:"Free Parent Counselling:\n\n• UPSC உங்கள் பிள்ளைக்கு சரியான path-ஆ?\n• Realistic timeline & success probability\n• Struggling students-எப்படி support பண்றோம்\n• Financial planning\n• உங்கள் கேள்விகளுக்கு பதில் — time limit இல்லை\n\nFree. In-person or video. 45 minutes.",chips:["Counselling book","Team-கிட்ட பேசு"],intent:2},
+  "Counselling book":{msg:"Counselling slots: திங்கள்–சனி, 10 AM–6 PM\n\nCall/WhatsApp: 044-4567 8900\n\nபெயர் & number சொல்லுங்க — 24 மணி நேரத்தில் schedule பண்றோம்.",chips:["Team-கிட்ட பேசு","Start over"],intent:1,conversion:true},
+  "Safety":{msg:"Campus Safety:\n\n• CCTV முழு premises-லும்\n• Biometric attendance — SMS to parents\n• Female security staff\n• ID இல்லாமல் outsider entry இல்லை\n• Anti-ragging committee active\n\nT. Nagar — safe, well-connected location.",chips:["Demo book","Parent counselling"]},
+  "Demo book":{msg:"Free Demo Class:\n\n• செவ்வாய் & வெள்ளி\n• காலை 9 மணி / மாலை 5 மணி\n• நேரில் அல்லது Google Meet\n\nபிள்ளையின் பெயர், graduation background, target exam சொல்லுங்க.\n\nCall/WhatsApp: 044-4567 8900",chips:["Team-கிட்ட பேசு","கட்டணம் & payment"],intent:3},
+  "Team-கிட்ட பேசு":{msg:"Chennai Civils Academy:\n\nPhone/WhatsApp: 044-4567 8900\nEmail: info@chennaicivils.in\nT. Nagar, Chennai\n\nதிங்கள்–சனி: காலை 8 – இரவு 8\n\n2 மணி நேரத்தில் callback வேணுமா?",chips:["ஆமா, callback வேணும்","Start over"],intent:1},
+  "ஆமா, callback வேணும்":{msg:"பெயர் மற்றும் number சொல்லுங்க.\n\n2 working hours-ல் call வருகிறது.\n\nChennai Civils Academy-யை நம்பியதற்கு நன்றி.",chips:["Start over"],intent:1,conversion:true},
+  "Hostel விவரம்":{msg:"T. Nagar-ல் accommodation:\n\n• Mixed PG: ₹8,000–12,000/மாதம்\n• Girls hostel: ₹9,000–13,000/மாதம்\n• Single rooms: ₹15,000/மாதம்\n\nMeals available. Contacts share பண்ணலாம்.",chips:["Demo book","Team-கிட்ட பேசு"]},
+  "Start over":null
+}
+}
+};
+
+// ── NLP MATCH ────────────────────────────────────────────────────────────────
+function nlpMatch(text){
+  var vl=text.toLowerCase().trim();
+  if(!vl)return null;
+  var map=NLP[lang][mode];
+  for(var pattern in map){
+    var keywords=pattern.split('|');
+    for(var i=0;i<keywords.length;i++){
+      if(vl.indexOf(keywords[i].toLowerCase())>-1){
+        var key=map[pattern];
+        if(key==='__start__')return '__start__';
+        var flow=getFlow();
+        if(flow[key])return key;
+      }
+    }
+  }
+  // Fallback: exact/partial match on flow keys
+  var flow=getFlow();
+  var best=null;
+  Object.keys(flow).forEach(function(k){
+    if(k==='start'||k==='Start over')return;
+    var kl=k.toLowerCase();
+    if(vl===kl)best=k;
+    else if(!best&&vl.length>2&&kl.indexOf(vl)>-1)best=k;
+  });
+  return best;
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function getFlow(){return F[lang][mode]}
+
+function addMsg(text,type){
+  var d=document.createElement('div');
+  d.className='msg '+(type==='bot'?'bm':'um');
+  d.textContent=text;
+  chatEl.appendChild(d);
+  chatEl.scrollTop=chatEl.scrollHeight;
+}
+
+function addChips(chips){
+  var w=document.createElement('div');
+  w.className='cw-row';
+  chips.forEach(function(c){
+    var b=document.createElement('button');
+    b.className='chip';b.textContent=c;
+    b.onclick=function(){handleChip(c);};
+    w.appendChild(b);
+  });
+  chatEl.appendChild(w);
+  chatEl.scrollTop=chatEl.scrollHeight;
+}
+
+function disableChips(){
+  chatEl.querySelectorAll('.chip').forEach(function(b){b.disabled=true;});
+}
+
+function addHotAlert(){
+  var a=document.createElement('div');
+  a.className='hot';
+  a.innerHTML='<div class="hot-t"><span class="hdot"></span>Hot lead — owner alert</div>High purchase intent detected. Recommend a follow-up call within 30 minutes for best conversion rate.';
+  chatEl.appendChild(a);
+  chatEl.scrollTop=chatEl.scrollHeight;
+  hotLeads++;updateStats();
+}
+
+function showTyping(){
+  var w=document.createElement('div');
+  w.className='tw';w.id='typ';
+  w.innerHTML='<div class="typ"><span class="td"></span><span class="td"></span><span class="td"></span></div>';
+  chatEl.appendChild(w);chatEl.scrollTop=chatEl.scrollHeight;
+}
+
+function removeTyping(){var t=document.getElementById('typ');if(t)t.remove();}
+
+function updateStats(){
+  document.getElementById('si').textContent=totalInq;
+  document.getElementById('sh').textContent=hotLeads;
+  var r=totalInq>0?Math.round((convs/totalInq)*100):0;
+  document.getElementById('sc').textContent=r+'%';
+}
+
+// BUG FIX: speak only after user interaction to avoid autoplay block
+function speak(text){
+  if(!speakOn||!voiceUnlocked||!synth)return;
+  synth.cancel();
+  var u=new SpeechSynthesisUtterance(text);
+  u.lang=lang==='ta'?'ta-IN':'en-IN';
+  // BUG FIX: fallback voice selection for Tamil
+  var voices=synth.getVoices();
+  var preferred=voices.filter(function(v){return v.lang===u.lang;});
+  if(preferred.length===0&&lang==='ta'){
+    // Tamil voice not available — use English IN as fallback
+    var enIN=voices.filter(function(v){return v.lang==='en-IN';});
+    if(enIN.length>0)u.voice=enIN[0];
+  } else if(preferred.length>0){
+    u.voice=preferred[0];
+  }
+  u.rate=0.88;u.pitch=1;
+  try{synth.speak(u);}catch(e){}
+}
+
+// ── INTERACTION ───────────────────────────────────────────────────────────────
+function handleChip(chip){
+  voiceUnlocked=true; // unlock voice on first user interaction
+  if(chip==='Start over'){doRestart();return;}
+  disableChips();
+  addMsg(chip,'user');
+  totalInq++;showTyping();
+  var next=getFlow()[chip];
+  setTimeout(function(){
+    removeTyping();
+    if(next){
+      if(next.intent){
+        intentScore+=next.intent;
+        if(next.conversion)convs++;
+        if(!hotFired&&intentScore>=5){hotFired=true;addHotAlert();}
+      }
+      speak(next.msg);
+      addMsg(next.msg,'bot');
+      if(next.chips&&next.chips.length)addChips(next.chips);
+    } else {
+      var s=getFlow().start;
+      speak(s.msg);addMsg(s.msg,'bot');addChips(s.chips);
+    }
+    updateStats();
+  },650);
+}
+
+function sendText(){
+  voiceUnlocked=true;
+  var v=document.getElementById('inp').value.trim();
+  if(!v)return;
+  document.getElementById('inp').value='';
+  disableChips();
+  addMsg(v,'user');
+  totalInq++;showTyping();
+  setTimeout(function(){
+    removeTyping();
+    var match=nlpMatch(v);
+    if(match==='__start__'){
+      var s=getFlow().start;
+      speak(s.msg);addMsg(s.msg,'bot');addChips(s.chips);
+      updateStats();return;
+    }
+    var resp=match?getFlow()[match]:null;
+    if(resp){
+      if(resp.intent)intentScore+=resp.intent;
+      if(resp.conversion)convs++;
+      if(!hotFired&&intentScore>=5){hotFired=true;addHotAlert();}
+      speak(resp.msg);addMsg(resp.msg,'bot');
+      if(resp.chips)addChips(resp.chips);
+    } else {
+      var fb=lang==='en'
+        ?"I didn't quite get that. Try one of the options below, or call us at 044-4567 8900."
+        :"சரியாக புரியவில்லை. கீழே உள்ள options-ல் ஒன்று தேர்ந்தெடுங்க அல்லது 044-4567 8900 call பண்ணுங்க.";
+      speak(fb);addMsg(fb,'bot');addChips(getFlow().start.chips);
+    }
+    updateStats();
+  },650);
+}
+
+// ── VOICE ─────────────────────────────────────────────────────────────────────
+function setVbar(txt,color){
+  var el=document.getElementById('vbar');
+  el.textContent=txt;
+  el.style.color=color||'var(--red)';
+  if(!txt)return;
+  setTimeout(function(){el.textContent='';el.style.color='var(--red)';},3000);
+}
+
+function toggleSpeak(){
+  voiceUnlocked=true;
+  speakOn=!speakOn;
+  if(!speakOn&&synth)synth.cancel();
+  document.getElementById('spkb').classList.toggle('muted',!speakOn);
+  setVbar(speakOn?'Voice output on — bot will speak replies':'Voice output off','var(--text-muted)');
+}
+
+function toggleVoice(){
+  voiceUnlocked=true;
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
+    setVbar('Voice input needs Chrome browser');return;
+  }
+  if(recOn){recognition.stop();return;}
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR();
+  recognition.lang=lang==='ta'?'ta-IN':'en-IN';
+  recognition.interimResults=false;
+  recognition.maxAlternatives=3;
+  recognition.onstart=function(){
+    recOn=true;
+    document.getElementById('micb').classList.add('rec');
+    setVbar('Listening...','var(--brand)');
+  };
+  recognition.onresult=function(e){
+    var t=e.results[0][0].transcript;
+    document.getElementById('inp').value=t;
+    setVbar('');
+    sendText();
+  };
+  recognition.onerror=function(e){
+    recOn=false; // BUG FIX: always reset on error
+    document.getElementById('micb').classList.remove('rec');
+    var msg=e.error==='not-allowed'?'Microphone permission denied — check browser settings':'Could not hear clearly — tap mic and try again';
+    setVbar(msg);
+  };
+  recognition.onend=function(){
+    recOn=false; // BUG FIX: always reset on end
+    document.getElementById('micb').classList.remove('rec');
+    setTimeout(function(){
+      var vbar=document.getElementById('vbar');
+      if(vbar.textContent==='Listening...')vbar.textContent='';
+    },500);
+  };
+  try{recognition.start();}catch(e){recOn=false;setVbar('Voice error — try again');}
+}
+
+// ── CONTROLS ──────────────────────────────────────────────────────────────────
+function setLang(l){
+  lang=l;
+  // BUG FIX: proper active class management
+  document.getElementById('be').className='tb'+(l==='en'?' on-green':'');
+  document.getElementById('bt').className='tb'+(l==='ta'?' on-green':'');
+  doRestart();
+}
+
+function setMode(m){
+  mode=m;
+  // BUG FIX: aspirant uses green, parent uses blue
+  document.getElementById('bst').className='tb'+(m==='student'?' on-green':'');
+  document.getElementById('bpa').className='tb'+(m==='parent'?' on-blue':'');
+  document.getElementById('mb').textContent=m==='parent'?'Parent':'Aspirant';
+  document.getElementById('stxt').textContent=m==='parent'?'Parent support mode':'Online · replies instantly';
+  doRestart();
+}
+
+function doRestart(){
+  chatEl.innerHTML='';
+  intentScore=0;totalInq=0;hotLeads=0;convs=0;hotFired=false;
+  updateStats();
+  if(synth)synth.cancel();
+  var s=getFlow().start;
+  // Do NOT speak on restart — avoid autoplay block
+  addMsg(s.msg,'bot');addChips(s.chips);
+}
+
+doRestart();
+</script>
+</body>
+</html>
